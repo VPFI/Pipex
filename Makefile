@@ -6,7 +6,7 @@
 #    By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/23 13:59:42 by vperez-f          #+#    #+#              #
-#    Updated: 2024/04/15 15:32:02 by vperez-f         ###   ########.fr        #
+#    Updated: 2024/04/30 09:19:56 by vperez-f         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -18,7 +18,7 @@ OBJ = $(OFILES)
 
 PATH_LFT = libft/libft.a
 
-CFLAGS = -Wall -Wextra 
+CFLAGS = -Wall -Wextra -Werror
 
 CC = cc
 
@@ -52,4 +52,4 @@ fclean:	clean
 re:	fclean all
 	make re -C libft
 
-.PHONY = all clean fclean re
+.PHONY: all clean fclean re
