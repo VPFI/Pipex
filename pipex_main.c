@@ -6,7 +6,7 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/10 15:17:09 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/04/30 04:24:19 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/04/30 11:42:26 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,23 +19,25 @@ char	*get_cmd_path(char *full_cmd, char **all_paths)
 	int		i;
 
 	i = 0;
-	cmd = ft_split(full_cmd, ' ')[0];
-	temp = cmd;
-	cmd = ft_strjoin("/", temp);
-	free(temp);
-	printf("cmd: %s\n", cmd);
+	temp = ft_split(full_cmd, ' ')[0];
+	cmd = temp;
+	temp = ft_strjoin("/", temp);
+	free(cmd);
+	printf("cmd: %s\n", temp);
 	while (all_paths[i])
 	{
-		temp = ft_strjoin(all_paths[i], cmd);
-		printf("temp_path: %s\n", temp);
-		if ((!access(temp, F_OK)) && (!access(temp, X_OK)))
+		cmd = ft_strjoin(all_paths[i], temp);
+		printf("cmd_path: %s\n", cmd);
+		if ((!access(cmd, F_OK)) && (!access(cmd, X_OK)))
 		{
-			printf("OK out %s\n", temp);
-			return (temp);
+			printf("OK out %s\n", cmd);
+			return (cmd);
 		}
-		free(temp);
+		free(cmd);
 		i++;
 	}
+	if (temp)
+		free(temp);
 	return (NULL);
 }
 char	**get_args(char *full_cmd)
@@ -72,6 +74,8 @@ char	**get_all_paths(char **envp)
 int	main(int argc, char **argv, char** envp)
 {
 	int		i;
+	pid_t	pid;
+	int		pipefd[2];
 	int		in_file;
 	int		out_file;
 	char    *cmd_path;
@@ -79,6 +83,7 @@ int	main(int argc, char **argv, char** envp)
 	char	**actual_normal_human_paths;
 
 	i = 2;
+	pid = 0;
 	in_file = open(argv[1], O_RDONLY);
 	out_file = open(argv[argc - 1], O_RDWR);
 	actual_normal_human_paths = get_all_paths(envp);
@@ -89,14 +94,33 @@ int	main(int argc, char **argv, char** envp)
 	{
 		printf("arg[%i]: %s\n", i, actual_normal_human_paths[i]);
 		i++;
-	}
-	while (i < argc - 1)
+	}*/
+	printf("%i\n", pid);
+	pipe(pipefd);
+	pid = fork();
+	printf("%i\n", pid);
+	if (pid == 0)
 	{
+		printf("hola22\n");
+		i++;
+		cmd_path = get_cmd_path(argv[i], actual_normal_human_paths);
+		cmd_args = get_args(argv[i]);
+		dup2(pipefd[0], 0);
+		dup2(0, in_file);
+		close(pipefd[1]);
+		execve(cmd_path, cmd_args, envp);
 	}
-	*/
-	cmd_path = get_cmd_path(argv[i], actual_normal_human_paths);
-	cmd_args = get_args(argv[i]);
-	printf("hola222\n");
-	execve(cmd_path, cmd_args, envp);
-	printf("hola333\n");
+	else
+	{
+		printf("hola33\n");
+		cmd_path = get_cmd_path(argv[i], actual_normal_human_paths);
+		cmd_args = get_args(argv[i]);
+		dup2(pipefd[1], 1);
+		dup2(1, out_file);
+		close(pipefd[0]);
+		execve(cmd_path, cmd_args, envp);
+	}
+	close(pipefd[0]);
+    close(pipefd[1]);
+    wait(&pid);
 }
