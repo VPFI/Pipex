@@ -6,11 +6,28 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/10 15:17:09 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/04/30 11:42:26 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/05/13 19:01:38 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
+
+void	free_arr(char **arr)
+{
+	int	i;
+
+	i = 0;
+	if (arr)	
+	{
+		while (arr[i])
+		{
+			free(arr[i]);
+			i++;
+		}
+		free(arr[i]);
+		free(arr);
+	}
+}
 
 char	*get_cmd_path(char *full_cmd, char **all_paths)
 {
@@ -23,14 +40,12 @@ char	*get_cmd_path(char *full_cmd, char **all_paths)
 	cmd = temp;
 	temp = ft_strjoin("/", temp);
 	free(cmd);
-	printf("cmd: %s\n", temp);
 	while (all_paths[i])
 	{
 		cmd = ft_strjoin(all_paths[i], temp);
-		printf("cmd_path: %s\n", cmd);
 		if ((!access(cmd, F_OK)) && (!access(cmd, X_OK)))
 		{
-			printf("OK out %s\n", cmd);
+			//printf("OK out %s\n", cmd);
 			return (cmd);
 		}
 		free(cmd);
@@ -49,10 +64,10 @@ char	**get_args(char *full_cmd)
 	arg = ft_split(full_cmd, ' ');
 	while (arg[i])
 	{
-		printf("arg[%i]: %s  ", i, arg[i]);
+		//printf("arg[%i]: %s  ", i, arg[i]);
 		i++;
 	}
-	printf("\n");
+	//printf("\n");
 	return (arg);
 }
 char	**get_all_paths(char **envp)
@@ -74,7 +89,8 @@ char	**get_all_paths(char **envp)
 int	main(int argc, char **argv, char** envp)
 {
 	int		i;
-	pid_t	pid;
+	pid_t	pid_child_1;
+	pid_t	pid_child_2;
 	int		pipefd[2];
 	int		in_file;
 	int		out_file;
@@ -83,11 +99,15 @@ int	main(int argc, char **argv, char** envp)
 	char	**actual_normal_human_paths;
 
 	i = 2;
-	pid = 0;
 	in_file = open(argv[1], O_RDONLY);
-	out_file = open(argv[argc - 1], O_RDWR);
+	if (in_file < 0)
+		return (printf("Failed to open/read in_file\n"));
+	out_file = open(argv[argc - 1], O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
+	if (out_file < 0)
+		return(printf("Failed to open/create out_file\n"));
 	actual_normal_human_paths = get_all_paths(envp);
-	printf("hola\n");
+	cmd_path = NULL;
+	cmd_args = NULL;
 	/*
 	i = 0;
 	while (actual_normal_human_paths[i])
@@ -95,32 +115,50 @@ int	main(int argc, char **argv, char** envp)
 		printf("arg[%i]: %s\n", i, actual_normal_human_paths[i]);
 		i++;
 	}*/
-	printf("%i\n", pid);
-	pipe(pipefd);
-	pid = fork();
-	printf("%i\n", pid);
-	if (pid == 0)
+	if (pipe(pipefd))
+		return (1);
+	pid_child_1 = fork();
+	if (pid_child_1 < 0)
+		return (2);
+	if (pid_child_1 == 0)
 	{
-		printf("hola22\n");
+		//printf("Child 1: %i\n", getpid());
+		//close(pipefd[0]);
+		cmd_path = get_cmd_path(argv[i], actual_normal_human_paths);
+		cmd_args = get_args(argv[i]);
+		dup2(pipefd[1], STDOUT_FILENO);
+		dup2(in_file, STDIN_FILENO);
+		close(pipefd[0]);
+		close(pipefd[1]);
+		execve(cmd_path, cmd_args, envp);
+		//technically should free stuff if execve fails
+		exit(0);
+		
+	}
+	pid_child_2 = fork();
+	if (pid_child_2 < 0)
+		return (3);
+	if (pid_child_2 == 0)
+	{
+		//printf("Child 2: %i\n", getpid());
 		i++;
 		cmd_path = get_cmd_path(argv[i], actual_normal_human_paths);
 		cmd_args = get_args(argv[i]);
-		dup2(pipefd[0], 0);
-		dup2(0, in_file);
+		dup2(pipefd[0], STDIN_FILENO);
+		dup2(out_file, STDOUT_FILENO);
+		close(pipefd[0]);
 		close(pipefd[1]);
 		execve(cmd_path, cmd_args, envp);
-	}
-	else
-	{
-		printf("hola33\n");
-		cmd_path = get_cmd_path(argv[i], actual_normal_human_paths);
-		cmd_args = get_args(argv[i]);
-		dup2(pipefd[1], 1);
-		dup2(1, out_file);
-		close(pipefd[0]);
-		execve(cmd_path, cmd_args, envp);
+		exit(0);
 	}
 	close(pipefd[0]);
-    close(pipefd[1]);
-    wait(&pid);
+	close(pipefd[1]);
+	while (0 < (argc - 3))
+	{
+		wait(0);
+		//printf("Waited for child %i: %i\n", -(argc - 3) + 3, wait(0));
+		argc--;
+	}
+	free_arr(actual_normal_human_paths);
+	return (0);
 }
