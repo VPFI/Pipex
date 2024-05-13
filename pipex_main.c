@@ -6,7 +6,7 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/10 15:17:09 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/13 19:01:38 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/05/13 20:28:02 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -99,12 +99,26 @@ int	main(int argc, char **argv, char** envp)
 	char	**actual_normal_human_paths;
 
 	i = 2;
-	in_file = open(argv[1], O_RDONLY);
-	if (in_file < 0)
-		return (printf("Failed to open/read in_file\n"));
+	if (argc < 5)
+	{
+		printf("Invalid nummber of args\n");
+		return (1);
+	}
 	out_file = open(argv[argc - 1], O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
 	if (out_file < 0)
-		return(printf("Failed to open/create out_file\n"));
+	{
+		printf("Failed to open/create %s\n", argv[argc - 1]);
+		return(1);
+	}
+	in_file = open(argv[1], O_RDONLY);
+	if (in_file < 0)
+	{
+		if	(!access(argv[1], F_OK) && access(argv[1], R_OK))
+			printf("Permission (read) denied: %s\n", argv[1]);
+		else
+			printf("Failed to open/read in_file\n");
+		return (1);
+	}
 	actual_normal_human_paths = get_all_paths(envp);
 	cmd_path = NULL;
 	cmd_args = NULL;
@@ -126,6 +140,11 @@ int	main(int argc, char **argv, char** envp)
 		//close(pipefd[0]);
 		cmd_path = get_cmd_path(argv[i], actual_normal_human_paths);
 		cmd_args = get_args(argv[i]);
+		if (!cmd_path)
+		{
+			printf("First command not found \n");
+			return (4);
+		}
 		dup2(pipefd[1], STDOUT_FILENO);
 		dup2(in_file, STDIN_FILENO);
 		close(pipefd[0]);
@@ -144,6 +163,11 @@ int	main(int argc, char **argv, char** envp)
 		i++;
 		cmd_path = get_cmd_path(argv[i], actual_normal_human_paths);
 		cmd_args = get_args(argv[i]);
+		if (!cmd_path)
+		{
+			printf("Second command not found \n");
+			return (4);
+		}
 		dup2(pipefd[0], STDIN_FILENO);
 		dup2(out_file, STDOUT_FILENO);
 		close(pipefd[0]);
