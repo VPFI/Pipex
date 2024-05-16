@@ -115,12 +115,13 @@ int	main(int argc, char **argv, char **envp)
 	if (in_file < 0)
 	{
 		if	(!access(argv[1], F_OK) && access(argv[1], R_OK))
-			printf("Permission (read) denied: %s\n", argv[1]);
+			printf("Reading permission denied: %s\n", argv[1]);
 		else
-			printf("Failed to open/read in_file\n");
+			printf("Failed to open in_file\n");
 		return (1);
 	}
 	actual_normal_human_paths = get_all_paths(envp);
+	// if !actual_normal....
 	cmd_path = NULL;
 	cmd_args = NULL;
 	/*
@@ -131,16 +132,28 @@ int	main(int argc, char **argv, char **envp)
 		i++;
 	}*/
 	if (pipe(pipefd))
+	{
+		free_arr(actual_normal_human_paths);
 		return (1);
+	}
 	pid_child_1 = fork();
 	if (pid_child_1 < 0)
-		return (2);
+	{
+		// Close pipe + file descr?
+		free_arr(actual_normal_human_paths);
+		return (1);
+	}
 	if (pid_child_1 == 0)
 	{
 		//printf("Child 1: %i\n", getpid());
-		//close(pipefd[0]);
+		if (dup2(pipefd[1], STDOUT_FILENO) < 0 || dup2(in_file, STDIN_FILENO) < 0)
+		{
+			free_arr(actual_normal_human_paths);
+			return(exit(0));
+		}
+		close(pipefd[0]);
+		close(pipefd[1]);
 		cmd_path = get_cmd_path(argv[i], actual_normal_human_paths);
-		cmd_args = get_args(argv[i]);
 		if (!cmd_path)
 		{
 			printf("First command not found \n");
@@ -166,15 +179,25 @@ int	main(int argc, char **argv, char **envp)
 	}
 	pid_child_2 = fork();
 	if (pid_child_2 < 0)
+	{
+		free_arr(actual_normal_human_paths);
 		return (3);
+	}
 	if (pid_child_2 == 0)
 	{
 		//printf("Child 2: %i\n", getpid());
 		i++;
+		if (dup2(pipefd[0], STDIN_FILENO) < 0 || dup2(out_file, STDOUT_FILENO < 0))
+		{
+			free_arr(actual_normal_human_paths);
+			return(exit(0));
+		}
+		close(pipefd[0]);
+		close(pipefd[1]);
 		cmd_path = get_cmd_path(argv[i], actual_normal_human_paths);
-		cmd_args = get_args(argv[i]);
 		if (!cmd_path)
 		{
+			free_arr(actual_normal_human_paths);
 			printf("Second command not found \n");
 			free_arr(actual_normal_human_paths);
 			exit(0);
