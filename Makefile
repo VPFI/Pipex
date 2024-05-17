@@ -6,7 +6,7 @@
 #    By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/23 13:59:42 by vperez-f          #+#    #+#              #
-#    Updated: 2024/04/30 09:19:56 by vperez-f         ###   ########.fr        #
+#    Updated: 2024/05/17 17:30:55 by vperez-f         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -40,6 +40,10 @@ $(NAME): $(OFILES)
 debug: $(OFILES) 
 	make -C libft/
 	$(CC) -g $(CFLAGS) $(OFILES) $(PATH_LFT) -o $(NAME)
+
+sanitize: $(OFILES) 
+	make -C libft/
+	$(CC) -g -fsanitize=address $(CFLAGS) $(OFILES) $(PATH_LFT) -o $(NAME)
 
 clean:
 	make clean -C libft 

@@ -6,7 +6,7 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/10 15:17:09 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/13 20:28:02 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/05/17 19:39:25 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,6 +51,7 @@ char	*get_cmd_path(char *full_cmd, char **all_paths)
 		free(cmd);
 		i++;
 	}
+	printf("Permission denied: %s\n", full_cmd);
 	if (temp)
 		free(temp);
 	return (NULL);
@@ -79,10 +80,10 @@ char	**get_all_paths(char **envp)
 	{
 		if (!ft_strnstr(envp[i], "PATH=", 5))
 			i++;
-		else
-		{
+		if (envp[i])
 			return(ft_split(envp[i] + 5, ':'));
-		}
+		else
+			return (ft_split(DEF_PATH, ':'));
 	}
 	return (NULL);
 }
@@ -143,14 +144,23 @@ int	main(int argc, char **argv, char** envp)
 		if (!cmd_path)
 		{
 			printf("First command not found \n");
+			free_arr(actual_normal_human_paths);
+			exit(0);
 			return (4);
 		}
-		dup2(pipefd[1], STDOUT_FILENO);
-		dup2(in_file, STDIN_FILENO);
+		if (dup2(pipefd[1], STDOUT_FILENO) < 0 || dup2(in_file, STDIN_FILENO) < 0)
+		{
+			free(cmd_path);
+			free_arr(actual_normal_human_paths);
+			exit(0);
+			return (0);
+		}
 		close(pipefd[0]);
 		close(pipefd[1]);
 		execve(cmd_path, cmd_args, envp);
-		//technically should free stuff if execve fails
+		free(cmd_path);
+		free_arr(cmd_args);
+		free_arr(actual_normal_human_paths);
 		exit(0);
 		
 	}
@@ -166,13 +176,30 @@ int	main(int argc, char **argv, char** envp)
 		if (!cmd_path)
 		{
 			printf("Second command not found \n");
+			free_arr(actual_normal_human_paths);
+			exit(0);
 			return (4);
 		}
-		dup2(pipefd[0], STDIN_FILENO);
-		dup2(out_file, STDOUT_FILENO);
+		if (dup2(pipefd[0], STDIN_FILENO) < 0)
+		{
+			free(cmd_path);
+			free_arr(actual_normal_human_paths);
+			exit(0);
+			return (0);
+		}
+		if (dup2(out_file, STDOUT_FILENO) < 0)
+		{
+			free(cmd_path);
+			free_arr(actual_normal_human_paths);
+			exit(0);
+			return (0);
+		}
 		close(pipefd[0]);
 		close(pipefd[1]);
 		execve(cmd_path, cmd_args, envp);
+		free(cmd_path);
+		free_arr(cmd_args);
+		free_arr(actual_normal_human_paths);
 		exit(0);
 	}
 	close(pipefd[0]);
