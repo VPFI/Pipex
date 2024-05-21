@@ -6,7 +6,7 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/10 15:17:09 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/17 19:39:25 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/05/21 17:44:05 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,7 +87,7 @@ char	**get_all_paths(char **envp)
 	}
 	return (NULL);
 }
-int	main(int argc, char **argv, char** envp)
+int	main(int argc, char **argv, char **envp)
 {
 	int		i;
 	pid_t	pid_child_1;
