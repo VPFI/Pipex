@@ -6,11 +6,11 @@
 #    By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/23 13:59:42 by vperez-f          #+#    #+#              #
-#    Updated: 2024/05/17 17:30:55 by vperez-f         ###   ########.fr        #
+#    Updated: 2024/05/22 16:42:51 by vperez-f         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-CFILES = pipex_main.c 
+CFILES = pipex_main.c pipex_utils.c
 
 OFILES = $(CFILES:%.c=%.o)
 
