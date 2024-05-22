@@ -6,27 +6,32 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/22 16:40:59 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/22 18:02:24 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/05/22 20:08:20 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
 
-void	wait_all(int childs)
+int	wait_all(t_pip *pipx, int childs)
 {
-	while (0 < childs)
-	{
-		wait(0);
-		//printf("Waited for child %i: %i\n", -(childs) + 3, wait(0));
-		childs--;
-	}
+	int	final_stat;
+	int	id1;
+	int	id2;
+
+	final_stat = 0;
+	id1 = waitpid(pipx->pid_child_1, &final_stat, 0);
+	childs--;
+	id2 = waitpid(pipx->pid_child_2, &final_stat, 0);
+	childs--;
+	return (final_stat);
 }
+
 void	free_arr(char **arr)
 {
 	int	i;
 
 	i = 0;
-	if (arr)	
+	if (arr)
 	{
 		while (arr[i])
 		{
@@ -38,6 +43,7 @@ void	free_arr(char **arr)
 		free(arr);
 	}
 }
+
 char	*get_cmd_path(char *full_cmd, char **all_paths)
 {
 	char	*cmd;
@@ -66,6 +72,7 @@ char	*get_cmd_path(char *full_cmd, char **all_paths)
 		free(temp);
 	return (NULL);
 }
+
 char	**get_args(char *full_cmd)
 {
 	char	**arg;
@@ -75,12 +82,11 @@ char	**get_args(char *full_cmd)
 	arg = ft_split(full_cmd, ' ');
 	while (arg[i])
 	{
-		//printf("arg[%i]: %s  ", i, arg[i]);
 		i++;
 	}
-	//printf("\n");
 	return (arg);
 }
+
 char	**get_all_paths(char **envp)
 {
 	int	i;
@@ -91,7 +97,7 @@ char	**get_all_paths(char **envp)
 		if (!ft_strnstr(envp[i], "PATH=", 5))
 			i++;
 		else if (envp[i])
-			return(ft_split(envp[i] + 5, ':'));
+			return (ft_split(envp[i] + 5, ':'));
 		else
 			return (ft_split(DEF_PATH, ':'));
 	}

@@ -6,7 +6,7 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/21 17:41:03 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/22 18:00:46 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/05/22 20:07:25 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,12 +34,13 @@ int	pip_err_aux(int err, char *msg)
 		fprintf(stderr, "pipex: command execution failed: %s (not executable)\n", msg);
 		return (126);
 	}
-	else 
+	else
 	{
 		perror("pipex: ");
 		return (1);
 	}
 }
+
 int	pip_err(int err, char *msg)
 {
 	if (err == ERR_MEM || err == ERR_PERM || err == ERR_NOFILE)
@@ -55,12 +56,14 @@ int	pip_err(int err, char *msg)
 	else
 		return (pip_err_aux(err, msg));
 }
+
 void	close_pipes(int *pipefd)
 {
 	close(pipefd[0]);
 	close(pipefd[1]);
 	//protect close?
 }
+
 void	free_all(t_pip *pipx)
 {
 	if (pipx)
@@ -74,6 +77,7 @@ void	free_all(t_pip *pipx)
 		free_arr(pipx->env_paths);
 	}
 }
+
 void	exec_second_command(t_pip *pipx)
 {
 	pipx->cmd_path = get_cmd_path(pipx->argv[3], pipx->env_paths);
@@ -98,6 +102,7 @@ void	exec_second_command(t_pip *pipx)
 	free_all(pipx);
 	exit(pip_err(ERR_STD, NULL));
 }
+
 void	exec_first_command(t_pip *pipx)
 {
 	pipx->cmd_path = get_cmd_path(pipx->argv[2], pipx->env_paths);
@@ -123,29 +128,28 @@ void	exec_first_command(t_pip *pipx)
 	free_all(pipx);
 	exit(pip_err(ERR_STD, NULL));
 }
+
 void	init_childs(t_pip *pipx)
 {
-	pid_t	pid_child_1;
-	pid_t	pid_child_2;
-	
-	pid_child_1 = fork();
-	if (pid_child_1 < 0)
+	pipx->pid_child_1 = fork();
+	if (pipx->pid_child_1 < 0)
 	{
 		free_all(pipx);
 		exit(pip_err(ERR_MEM, " fork:"));
 	}
-	if (pid_child_1 == 0)
+	if (pipx->pid_child_1 == 0)
 		exec_first_command(pipx);
-	pid_child_2 = fork();
-	if (pid_child_2 < 0)
+	pipx->pid_child_2 = fork();
+	if (pipx->pid_child_2 < 0)
 	{
 		free_all(pipx);
 		exit(pip_err(ERR_MEM, " fork:"));
 	}
-	if (pid_child_2 == 0)
+	if (pipx->pid_child_2 == 0)
 		exec_second_command(pipx);
 	return ;
 }
+
 void	init_pipx(t_pip *pipx, int argc, char **argv, char **envp)
 {
 	pipx->argc = argc;
@@ -159,13 +163,13 @@ void	init_pipx(t_pip *pipx, int argc, char **argv, char **envp)
 	pipx->in_file = open(argv[1], O_RDONLY);
 	if (pipx->in_file < 0)
 	{
-		if	(access(argv[1], F_OK))
+		if (access(argv[1], F_OK))
 			exit(pip_err(ERR_NOFILE, argv[1]));
 		else if (access(argv[1], R_OK))
 			exit(pip_err(ERR_PERM, argv[1]));
 		else
 			exit(pip_err(ERR_STD, NULL));
-	}	
+	}
 	pipx->env_paths = get_all_paths(envp);
 	if (!pipx->env_paths)
 		exit(pip_err(ERR_STD, NULL));
@@ -175,16 +179,18 @@ void	init_pipx(t_pip *pipx, int argc, char **argv, char **envp)
 	pipx->cmd_args = NULL;
 	return ;
 }
+
 int	main(int argc, char **argv, char **envp)
 {
 	int		childs;
+	int		stat;
 	t_pip	pipx;
 
 	childs = argc - 3;
 	init_pipx(&pipx, argc, argv, envp);
 	init_childs(&pipx);
 	close_pipes(pipx.pipefd);
-	wait_all(childs);
+	stat = wait_all(&pipx, childs);
 	free_all(&pipx);
-	return (0);
+	return (WEXITSTATUS(stat));
 }
