@@ -6,7 +6,7 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/10 15:17:15 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/21 21:25:55 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/05/22 18:00:10 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,15 @@
 # define DEF_PATH "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 //Define all errors etc...
 
+# define ERR_STD  1 //perror
+# define ERR_MEM  2 //1
+# define ERR_ARGS  3 //102
+# define ERR_OUTF  4 //73
+# define ERR_PERM  5 //1
+# define ERR_NOFILE 6 //1
+# define ERR_COMMANDNF 7 //127
+# define ERR_FAILEDEXE 8 //126
+
 typedef struct s_pip
 {
 	int		argc;
@@ -37,17 +46,20 @@ typedef struct s_pip
 	char	**env_paths;
 }			t_pip;
 
-void	free_arr(char **arr);
-void	free_all(t_pip *pipx);
-void	close_pipes(t_pip *pipx);
+int	pip_err(int err, char *msg);
+int	pip_err_aux(int err, char *msg);
 
 char	*get_cmd_path(char *full_cmd, char **all_paths);
 char	**get_args(char *full_cmd);
 char	**get_all_paths(char **envp);
 
-int	init_childs(t_pip *pipx);
-int	exec_first_command(t_pip *pipx);
-int	exec_second_command(t_pip *pipx);
-int	init_pipx(t_pip *pipx, int argc, char **argv, char **envp);
+void	wait_all(int childs);
+void	free_arr(char **arr);
+void	free_all(t_pip *pipx);
+void	close_pipes(int *pipefd);
+void	init_childs(t_pip *pipx);
+void	exec_first_command(t_pip *pipx);
+void	exec_second_command(t_pip *pipx);
+void	init_pipx(t_pip *pipx, int argc, char **argv, char **envp);
 
 #endif

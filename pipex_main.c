@@ -5,211 +5,186 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/04/10 15:17:09 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/21 17:44:05 by vperez-f         ###   ########.fr       */
+/*   Created: 2024/05/21 17:41:03 by vperez-f          #+#    #+#             */
+/*   Updated: 2024/05/22 18:00:46 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
 
-void	free_arr(char **arr)
+int	pip_err_aux(int err, char *msg)
 {
-	int	i;
-
-	i = 0;
-	if (arr)	
+	if (err == ERR_ARGS)
 	{
-		while (arr[i])
+		fprintf(stderr, "pipex: invalid number of arguments\n");
+		return (102);
+	}
+	else if (err == ERR_OUTF)
+	{
+		fprintf(stderr, "pipex: error creating outfile: %s\n", msg);
+		return (73);
+	}
+	else if (err == ERR_COMMANDNF)
+	{
+		fprintf(stderr, "pipex: command not found: %s\n", msg);
+		return (127);
+	}
+	else if (err == ERR_FAILEDEXE)
+	{
+		fprintf(stderr, "pipex: command execution failed: %s (not executable)\n", msg);
+		return (126);
+	}
+	else 
+	{
+		perror("pipex: ");
+		return (1);
+	}
+}
+int	pip_err(int err, char *msg)
+{
+	if (err == ERR_MEM || err == ERR_PERM || err == ERR_NOFILE)
+	{
+		if (err == ERR_MEM)
+			fprintf(stderr, "pipex:%s Cannot allocate memory\n", msg);
+		else if (err == ERR_PERM)
+			fprintf(stderr, "pipex: permission denied: %s\n", msg);
+		else if (err == ERR_NOFILE)
+			fprintf(stderr, "pipex: no such file or directory: %s\n", msg);
+		return (1);
+	}
+	else
+		return (pip_err_aux(err, msg));
+}
+void	close_pipes(int *pipefd)
+{
+	close(pipefd[0]);
+	close(pipefd[1]);
+	//protect close?
+}
+void	free_all(t_pip *pipx)
+{
+	if (pipx)
+	{
+		if (pipx->cmd_path)
 		{
-			free(arr[i]);
-			i++;
+			free(pipx->cmd_path);
+			pipx->cmd_path = NULL;
 		}
-		free(arr[i]);
-		free(arr);
+		free_arr(pipx->cmd_args);
+		free_arr(pipx->env_paths);
 	}
 }
-
-char	*get_cmd_path(char *full_cmd, char **all_paths)
+void	exec_second_command(t_pip *pipx)
 {
-	char	*cmd;
-	char	*temp;
-	int		i;
-
-	i = 0;
-	temp = ft_split(full_cmd, ' ')[0];
-	cmd = temp;
-	temp = ft_strjoin("/", temp);
-	free(cmd);
-	while (all_paths[i])
+	pipx->cmd_path = get_cmd_path(pipx->argv[3], pipx->env_paths);
+	pipx->cmd_args = get_args(pipx->argv[3]);
+	if (!pipx->cmd_path)
 	{
-		cmd = ft_strjoin(all_paths[i], temp);
-		if ((!access(cmd, F_OK)) && (!access(cmd, X_OK)))
-		{
-			//printf("OK out %s\n", cmd);
-			return (cmd);
-		}
-		free(cmd);
-		i++;
+		free_all(pipx);
+		exit(pip_err(ERR_COMMANDNF, (ft_split(pipx->argv[3], ' ')[0])));
 	}
-	printf("Permission denied: %s\n", full_cmd);
-	if (temp)
-		free(temp);
-	return (NULL);
-}
-char	**get_args(char *full_cmd)
-{
-	char	**arg;
-	int		i;
-
-	i = 0;
-	arg = ft_split(full_cmd, ' ');
-	while (arg[i])
+	if (dup2(pipx->pipefd[0], STDIN_FILENO) < 0)
 	{
-		//printf("arg[%i]: %s  ", i, arg[i]);
-		i++;
+		free_all(pipx);
+		exit(pip_err(ERR_STD, NULL));
 	}
-	//printf("\n");
-	return (arg);
-}
-char	**get_all_paths(char **envp)
-{
-	int	i;
-
-	i = 0;
-	while (envp[i])
+	if (dup2(pipx->out_file, STDOUT_FILENO) < 0)
 	{
-		if (!ft_strnstr(envp[i], "PATH=", 5))
-			i++;
-		if (envp[i])
-			return(ft_split(envp[i] + 5, ':'));
+		free_all(pipx);
+		exit(pip_err(ERR_STD, NULL));
+	}
+	close_pipes(pipx->pipefd);
+	execve(pipx->cmd_path, pipx->cmd_args, pipx->envp);
+	free_all(pipx);
+	exit(pip_err(ERR_STD, NULL));
+}
+void	exec_first_command(t_pip *pipx)
+{
+	pipx->cmd_path = get_cmd_path(pipx->argv[2], pipx->env_paths);
+	pipx->cmd_args = get_args(pipx->argv[2]);
+	if (!pipx->cmd_path)
+	{
+		free_all(pipx);
+		exit(pip_err(ERR_COMMANDNF, (ft_split(pipx->argv[2], ' ')[0])));
+	}
+	if (dup2(pipx->pipefd[1], STDOUT_FILENO) < 0)
+	{
+		free_all(pipx);
+		exit(pip_err(ERR_STD, NULL));
+	}
+	if (dup2(pipx->in_file, STDIN_FILENO) < 0)
+	{
+		free_all(pipx);
+		exit(pip_err(ERR_STD, NULL));
+	}
+	close_pipes(pipx->pipefd);
+	//close everytime I free?
+	execve(pipx->cmd_path, pipx->cmd_args, pipx->envp);
+	free_all(pipx);
+	exit(pip_err(ERR_STD, NULL));
+}
+void	init_childs(t_pip *pipx)
+{
+	pid_t	pid_child_1;
+	pid_t	pid_child_2;
+	
+	pid_child_1 = fork();
+	if (pid_child_1 < 0)
+	{
+		free_all(pipx);
+		exit(pip_err(ERR_MEM, " fork:"));
+	}
+	if (pid_child_1 == 0)
+		exec_first_command(pipx);
+	pid_child_2 = fork();
+	if (pid_child_2 < 0)
+	{
+		free_all(pipx);
+		exit(pip_err(ERR_MEM, " fork:"));
+	}
+	if (pid_child_2 == 0)
+		exec_second_command(pipx);
+	return ;
+}
+void	init_pipx(t_pip *pipx, int argc, char **argv, char **envp)
+{
+	pipx->argc = argc;
+	pipx->argv = argv;
+	pipx->envp = envp;
+	if (argc < 5)
+		exit(pip_err(ERR_ARGS, NULL));
+	pipx->out_file = open(argv[argc - 1], O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
+	if (pipx->out_file < 0)
+		exit(pip_err(ERR_OUTF, argv[argc - 1]));
+	pipx->in_file = open(argv[1], O_RDONLY);
+	if (pipx->in_file < 0)
+	{
+		if	(access(argv[1], F_OK))
+			exit(pip_err(ERR_NOFILE, argv[1]));
+		else if (access(argv[1], R_OK))
+			exit(pip_err(ERR_PERM, argv[1]));
 		else
-			return (ft_split(DEF_PATH, ':'));
-	}
-	return (NULL);
+			exit(pip_err(ERR_STD, NULL));
+	}	
+	pipx->env_paths = get_all_paths(envp);
+	if (!pipx->env_paths)
+		exit(pip_err(ERR_STD, NULL));
+	if (pipe(pipx->pipefd))
+		exit(pip_err(ERR_STD, NULL));
+	pipx->cmd_path = NULL;
+	pipx->cmd_args = NULL;
+	return ;
 }
 int	main(int argc, char **argv, char **envp)
 {
-	int		i;
-	pid_t	pid_child_1;
-	pid_t	pid_child_2;
-	int		pipefd[2];
-	int		in_file;
-	int		out_file;
-	char    *cmd_path;
-	char	**cmd_args;
-	char	**actual_normal_human_paths;
+	int		childs;
+	t_pip	pipx;
 
-	i = 2;
-	if (argc < 5)
-	{
-		printf("Invalid nummber of args\n");
-		return (1);
-	}
-	out_file = open(argv[argc - 1], O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
-	if (out_file < 0)
-	{
-		printf("Failed to open/create %s\n", argv[argc - 1]);
-		return(1);
-	}
-	in_file = open(argv[1], O_RDONLY);
-	if (in_file < 0)
-	{
-		if	(!access(argv[1], F_OK) && access(argv[1], R_OK))
-			printf("Permission (read) denied: %s\n", argv[1]);
-		else
-			printf("Failed to open/read in_file\n");
-		return (1);
-	}
-	actual_normal_human_paths = get_all_paths(envp);
-	cmd_path = NULL;
-	cmd_args = NULL;
-	/*
-	i = 0;
-	while (actual_normal_human_paths[i])
-	{
-		printf("arg[%i]: %s\n", i, actual_normal_human_paths[i]);
-		i++;
-	}*/
-	if (pipe(pipefd))
-		return (1);
-	pid_child_1 = fork();
-	if (pid_child_1 < 0)
-		return (2);
-	if (pid_child_1 == 0)
-	{
-		//printf("Child 1: %i\n", getpid());
-		//close(pipefd[0]);
-		cmd_path = get_cmd_path(argv[i], actual_normal_human_paths);
-		cmd_args = get_args(argv[i]);
-		if (!cmd_path)
-		{
-			printf("First command not found \n");
-			free_arr(actual_normal_human_paths);
-			exit(0);
-			return (4);
-		}
-		if (dup2(pipefd[1], STDOUT_FILENO) < 0 || dup2(in_file, STDIN_FILENO) < 0)
-		{
-			free(cmd_path);
-			free_arr(actual_normal_human_paths);
-			exit(0);
-			return (0);
-		}
-		close(pipefd[0]);
-		close(pipefd[1]);
-		execve(cmd_path, cmd_args, envp);
-		free(cmd_path);
-		free_arr(cmd_args);
-		free_arr(actual_normal_human_paths);
-		exit(0);
-		
-	}
-	pid_child_2 = fork();
-	if (pid_child_2 < 0)
-		return (3);
-	if (pid_child_2 == 0)
-	{
-		//printf("Child 2: %i\n", getpid());
-		i++;
-		cmd_path = get_cmd_path(argv[i], actual_normal_human_paths);
-		cmd_args = get_args(argv[i]);
-		if (!cmd_path)
-		{
-			printf("Second command not found \n");
-			free_arr(actual_normal_human_paths);
-			exit(0);
-			return (4);
-		}
-		if (dup2(pipefd[0], STDIN_FILENO) < 0)
-		{
-			free(cmd_path);
-			free_arr(actual_normal_human_paths);
-			exit(0);
-			return (0);
-		}
-		if (dup2(out_file, STDOUT_FILENO) < 0)
-		{
-			free(cmd_path);
-			free_arr(actual_normal_human_paths);
-			exit(0);
-			return (0);
-		}
-		close(pipefd[0]);
-		close(pipefd[1]);
-		execve(cmd_path, cmd_args, envp);
-		free(cmd_path);
-		free_arr(cmd_args);
-		free_arr(actual_normal_human_paths);
-		exit(0);
-	}
-	close(pipefd[0]);
-	close(pipefd[1]);
-	while (0 < (argc - 3))
-	{
-		wait(0);
-		//printf("Waited for child %i: %i\n", -(argc - 3) + 3, wait(0));
-		argc--;
-	}
-	free_arr(actual_normal_human_paths);
+	childs = argc - 3;
+	init_pipx(&pipx, argc, argv, envp);
+	init_childs(&pipx);
+	close_pipes(pipx.pipefd);
+	wait_all(childs);
+	free_all(&pipx);
 	return (0);
 }
