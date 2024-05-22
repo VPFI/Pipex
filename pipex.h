@@ -6,7 +6,7 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/10 15:17:15 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/22 19:53:56 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/05/22 20:40:06 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,7 +34,6 @@
 
 typedef struct s_pip
 {
-	int		argc;
 	int		in_file;
 	int		out_file;
 	int		pipefd[2];
