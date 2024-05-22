@@ -6,7 +6,7 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/21 17:41:03 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/22 20:07:25 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/05/22 20:40:07 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -152,7 +152,6 @@ void	init_childs(t_pip *pipx)
 
 void	init_pipx(t_pip *pipx, int argc, char **argv, char **envp)
 {
-	pipx->argc = argc;
 	pipx->argv = argv;
 	pipx->envp = envp;
 	if (argc < 5)
