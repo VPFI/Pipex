@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   pipex_utils.c                                      :+:      :+:    :+:   */
+/*   pipex_comm_utils.c                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/22 16:40:59 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/22 20:08:20 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/05/23 17:56:19 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,22 +26,24 @@ int	wait_all(t_pip *pipx, int childs)
 	return (final_stat);
 }
 
-void	free_arr(char **arr)
+int	check_path(char *path)
 {
 	int	i;
 
 	i = 0;
-	if (arr)
+	if (path)
 	{
-		while (arr[i])
+		while (path[i])
 		{
-			free(arr[i]);
-			arr[i] = NULL;
+			if (path[i] == '/')
+			{
+				return (1);
+			}
 			i++;
 		}
-		free(arr[i]);
-		free(arr);
+		return (0);
 	}
+	return (0);
 }
 
 char	*get_cmd_path(char *full_cmd, char **all_paths)
@@ -51,11 +53,11 @@ char	*get_cmd_path(char *full_cmd, char **all_paths)
 	int		i;
 
 	i = 0;
-	temp = ft_split(full_cmd, ' ')[0];
-	cmd = temp;
-	temp = ft_strjoin("/", temp);
-	free(cmd);
-	while (all_paths[i])
+	cmd = ft_split(full_cmd, ' ')[0];
+	temp = ft_strjoin("/", cmd);
+	if (cmd)
+		free(cmd);
+	while (all_paths[i] && temp)
 	{
 		cmd = ft_strjoin(all_paths[i], temp);
 		if ((!access(cmd, F_OK)))

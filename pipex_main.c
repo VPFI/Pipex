@@ -6,81 +6,18 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/21 17:41:03 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/22 20:40:07 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/05/23 17:55:09 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
 
-int	pip_err_aux(int err, char *msg)
-{
-	if (err == ERR_ARGS)
-	{
-		fprintf(stderr, "pipex: invalid number of arguments\n");
-		return (102);
-	}
-	else if (err == ERR_OUTF)
-	{
-		fprintf(stderr, "pipex: error creating outfile: %s\n", msg);
-		return (73);
-	}
-	else if (err == ERR_COMMANDNF)
-	{
-		fprintf(stderr, "pipex: command not found: %s\n", msg);
-		return (127);
-	}
-	else if (err == ERR_FAILEDEXE)
-	{
-		fprintf(stderr, "pipex: command execution failed: %s (not executable)\n", msg);
-		return (126);
-	}
-	else
-	{
-		perror("pipex: ");
-		return (1);
-	}
-}
-
-int	pip_err(int err, char *msg)
-{
-	if (err == ERR_MEM || err == ERR_PERM || err == ERR_NOFILE)
-	{
-		if (err == ERR_MEM)
-			fprintf(stderr, "pipex:%s Cannot allocate memory\n", msg);
-		else if (err == ERR_PERM)
-			fprintf(stderr, "pipex: permission denied: %s\n", msg);
-		else if (err == ERR_NOFILE)
-			fprintf(stderr, "pipex: no such file or directory: %s\n", msg);
-		return (1);
-	}
-	else
-		return (pip_err_aux(err, msg));
-}
-
-void	close_pipes(int *pipefd)
-{
-	close(pipefd[0]);
-	close(pipefd[1]);
-	//protect close?
-}
-
-void	free_all(t_pip *pipx)
-{
-	if (pipx)
-	{
-		if (pipx->cmd_path)
-		{
-			free(pipx->cmd_path);
-			pipx->cmd_path = NULL;
-		}
-		free_arr(pipx->cmd_args);
-		free_arr(pipx->env_paths);
-	}
-}
-
 void	exec_second_command(t_pip *pipx)
 {
-	pipx->cmd_path = get_cmd_path(pipx->argv[3], pipx->env_paths);
+	if (check_path(pipx->argv[3]))
+		pipx->cmd_path = ft_strdup(pipx->argv[3]);
+	else
+		pipx->cmd_path = get_cmd_path(pipx->argv[3], pipx->env_paths);
 	pipx->cmd_args = get_args(pipx->argv[3]);
 	if (!pipx->cmd_path)
 	{
@@ -105,7 +42,10 @@ void	exec_second_command(t_pip *pipx)
 
 void	exec_first_command(t_pip *pipx)
 {
-	pipx->cmd_path = get_cmd_path(pipx->argv[2], pipx->env_paths);
+	if (check_path(pipx->argv[2]))
+		pipx->cmd_path = ft_strdup(pipx->argv[2]);
+	else
+		pipx->cmd_path = get_cmd_path(pipx->argv[2], pipx->env_paths);
 	pipx->cmd_args = get_args(pipx->argv[2]);
 	if (!pipx->cmd_path)
 	{
@@ -123,7 +63,6 @@ void	exec_first_command(t_pip *pipx)
 		exit(pip_err(ERR_STD, NULL));
 	}
 	close_pipes(pipx->pipefd);
-	//close everytime I free?
 	execve(pipx->cmd_path, pipx->cmd_args, pipx->envp);
 	free_all(pipx);
 	exit(pip_err(ERR_STD, NULL));
