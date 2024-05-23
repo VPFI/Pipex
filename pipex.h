@@ -6,7 +6,7 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/10 15:17:15 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/22 20:40:06 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/05/23 17:27:28 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 # define PIPEX_H
 
 # include "libft/libft.h"
+# include "printf/ft_printf.h"
 # include <unistd.h>
 # include <string.h>
 # include <stdio.h>
@@ -46,9 +47,10 @@ typedef struct s_pip
 	char	**env_paths;
 }			t_pip;
 
-int		wait_all(t_pip *pipx, int childs);
+int		check_path(char *path);
 int		pip_err(int err, char *msg);
 int		pip_err_aux(int err, char *msg);
+int		wait_all(t_pip *pipx, int childs);
 
 char	*get_cmd_path(char *full_cmd, char **all_paths);
 char	**get_args(char *full_cmd);
