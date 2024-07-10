@@ -6,7 +6,7 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/21 17:41:03 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/23 17:55:09 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/07/10 19:04:40 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -93,7 +93,7 @@ void	init_pipx(t_pip *pipx, int argc, char **argv, char **envp)
 {
 	pipx->argv = argv;
 	pipx->envp = envp;
-	if (argc < 5)
+	if (argc != 5)
 		exit(pip_err(ERR_ARGS, NULL));
 	pipx->out_file = open(argv[argc - 1], O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
 	if (pipx->out_file < 0)
@@ -109,8 +109,6 @@ void	init_pipx(t_pip *pipx, int argc, char **argv, char **envp)
 			exit(pip_err(ERR_STD, NULL));
 	}
 	pipx->env_paths = get_all_paths(envp);
-	if (!pipx->env_paths)
-		exit(pip_err(ERR_STD, NULL));
 	if (pipe(pipx->pipefd))
 		exit(pip_err(ERR_STD, NULL));
 	pipx->cmd_path = NULL;
