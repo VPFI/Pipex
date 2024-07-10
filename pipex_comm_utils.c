@@ -6,7 +6,7 @@
 /*   By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/22 16:40:59 by vperez-f          #+#    #+#             */
-/*   Updated: 2024/05/23 17:56:19 by vperez-f         ###   ########.fr       */
+/*   Updated: 2024/07/10 18:58:49 by vperez-f         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,14 +50,14 @@ char	*get_cmd_path(char *full_cmd, char **all_paths)
 {
 	char	*cmd;
 	char	*temp;
+	char	**list_temp;
 	int		i;
 
 	i = 0;
-	cmd = ft_split(full_cmd, ' ')[0];
-	temp = ft_strjoin("/", cmd);
-	if (cmd)
-		free(cmd);
-	while (all_paths[i] && temp)
+	list_temp = ft_split(full_cmd, ' ');
+	temp = ft_strjoin("/", list_temp[0]);
+	free_arr(list_temp);
+	while (all_paths && all_paths[i] && temp)
 	{
 		cmd = ft_strjoin(all_paths[i], temp);
 		if ((!access(cmd, F_OK)))

@@ -6,7 +6,7 @@
 #    By: vperez-f <vperez-f@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/23 13:59:42 by vperez-f          #+#    #+#              #
-#    Updated: 2024/05/23 17:55:01 by vperez-f         ###   ########.fr        #
+#    Updated: 2024/07/09 18:44:12 by vperez-f         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -20,7 +20,7 @@ PATH_LFT = libft/libft.a
 
 PATH_PTF = printf/libftprintf.a
 
-CFLAGS = -Wall -Wextra -Werror
+CFLAGS = -Wall -Wextra -Werror -fsanitize=address -fsanitize=leak
 
 CC = cc
 
@@ -30,15 +30,19 @@ RM = rm -f
 
 NAME = pipex
 
-%.o: %.c  pipex.h Makefile libft printf
-	$(CC) $(CFLAGS) -c $< -o $@
+all: extra_make $(NAME)
 
-all: $(NAME)
+extra_make:
+	@printf "LIBFT: COMPILING...\n$(END)"
+	@$(MAKE) -C libft/ --no-print-directory
+	@printf "PRINTF: COMPILING...\n$(END)"
+	@$(MAKE) -C printf/ --no-print-directory
 
 $(NAME): $(OFILES) 
-	make -C libft/
-	make -C printf/
 	$(CC) $(CFLAGS) $(OFILES) $(PATH_LFT) $(PATH_PTF) -o $(NAME)
+
+%.o: %.c  pipex.h Makefile libft printf
+	$(CC) $(CFLAGS) -c $< -o $@
 
 debug: $(OFILES) 
 	make -C libft/
